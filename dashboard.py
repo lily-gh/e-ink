@@ -13,7 +13,7 @@ libdir = os.path.dirname(os.path.realpath(__file__))
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
-
+import epd7in5b_V2
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -92,7 +92,7 @@ def draw_tasks(draw, x_offset, y_offset, width, height, font_medium, font_small)
     draw.rectangle([(x_offset, y_offset), (x_offset + width, y_offset + height)], fill=255)
     
     title = "Lily's Tasks"
-    w, h = draw.textsize(title, font=font_medium)
+    _, _, w, h = font_medium.getbbox(title)
     draw.text((x_offset + (width - w) / 2, y_offset + 10), title, font=font_medium, fill=0)
 
     tasks = get_tasks()
@@ -100,7 +100,8 @@ def draw_tasks(draw, x_offset, y_offset, width, height, font_medium, font_small)
     if tasks:
         for task in tasks:
             draw.text((x_offset + 20, y_pos), f"- {task}", font=font_small, fill=0)
-            y_pos += font_small.getsize(task)[1] + 5
+            _, _, _, task_h = font_small.getbbox(task)
+            y_pos += task_h + 5
             if y_pos > y_offset + height - 20: # Don't draw off screen
                 break
     else:
