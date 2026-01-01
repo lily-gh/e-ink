@@ -95,9 +95,10 @@ def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_mediu
     
     # Show current date at the top
     from datetime import datetime
+    font_date = ImageFont.truetype(os.path.join(picdir, 'MapleMonoBold.ttf'), 27)  # 1.5x of font_small (18)
     current_date = datetime.now().strftime("%d %b")
-    _, _, date_w, date_h = font_small.getbbox(current_date)
-    draw.text((x_offset + (width - date_w) / 2, y_offset + 10), current_date, font=font_small, fill=0)
+    _, _, date_w, date_h = font_date.getbbox(current_date)
+    draw.text((x_offset + (width - date_w) / 2, y_offset + 10), current_date, font=font_date, fill=0)
     
     # Get weather data or use placeholders
     if weather_data and 'now' in weather_data:
@@ -132,26 +133,39 @@ def draw_forecast(draw, x_offset, y_offset, width, height, font_small, weather_d
     """
     draw.rectangle([(x_offset, y_offset), (x_offset + width, y_offset + height)], fill=255)
     
-    y_pos = y_offset + 10
+    y_pos = y_offset + 30  # Add padding at top
     
-    if weather_data and 'forecast' in weather_data:
+    if weather_data and 'now' in weather_data:
         from datetime import datetime
-        for day in weather_data['forecast'][:5]:
-            # Format date as "dd MMM"
-            date_obj = datetime.fromisoformat(day['date'])
-            date_str = date_obj.strftime("%d %b")
-            
-            # Format: "dd MMM:    min   max"
-            forecast_line = f"{date_str}:    {day['min']}°   {day['max']}°"
-            
-            draw.text((x_offset + 20, y_pos), forecast_line, font=font_small, fill=0)
-            _, _, _, line_h = font_small.getbbox(forecast_line)
-            y_pos += line_h + 8
-            
-            if y_pos > y_offset + height - 20:
-                break
+        
+        # First, show today's weather
+        today_min = weather_data['now']['min']
+        today_max = weather_data['now']['max']
+        forecast_line = f"Today:    {today_min}°   {today_max}°"
+        _, _, line_w, line_h = font_small.getbbox(forecast_line)
+        draw.text((x_offset + (width - line_w) / 2, y_pos), forecast_line, font=font_small, fill=0)
+        y_pos += line_h + 8
+        
+        # Then show next days with weekday abbreviations
+        if 'forecast' in weather_data:
+            for day in weather_data['forecast'][:4]:  # Show 4 more days (total 5 with today)
+                # Format as 3-letter weekday
+                date_obj = datetime.fromisoformat(day['date'])
+                weekday = date_obj.strftime("%a")
+                
+                # Format: "weekday:    min   max"
+                forecast_line = f"{weekday}:    {day['min']}°   {day['max']}°"
+                
+                _, _, line_w, line_h = font_small.getbbox(forecast_line)
+                draw.text((x_offset + (width - line_w) / 2, y_pos), forecast_line, font=font_small, fill=0)
+                y_pos += line_h + 8
+                
+                if y_pos > y_offset + height - 20:
+                    break
     else:
-        draw.text((x_offset + 20, y_pos), "No forecast data", font=font_small, fill=0)
+        forecast_line = "No forecast data"
+        _, _, line_w, _ = font_small.getbbox(forecast_line)
+        draw.text((x_offset + (width - line_w) / 2, y_pos), forecast_line, font=font_small, fill=0)
 
 def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     """
@@ -159,7 +173,7 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     """
     draw.rectangle([(x_offset, 0), (x_offset + width, height)], fill=255)
     
-    title = "Bus 106 Departures"
+    title = "Bus 106 Departures \udb81\udfa0"
     _, _, w, h = font_medium.getbbox(title)
     draw.text((x_offset + (width - w) / 2, 10), title, font=font_medium, fill=0)
 
@@ -173,7 +187,7 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     y_pos = 10 + h + 20
     
     # Add padding and calculate spacing to evenly distribute the times
-    padding = 40
+    padding = 15
     usable_width = width - (2 * padding)
     spacing = usable_width / (len(departures) + 1)
     
