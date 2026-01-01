@@ -64,11 +64,17 @@ def get_departures():
         return []
     return []
 
-def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_medium):
+def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_medium, font_small):
     """
     Draws the weather pane.
     """
     draw.rectangle([(x_offset, y_offset), (x_offset + width, y_offset + height)], fill=255)
+    
+    # Show current date at the top
+    from datetime import datetime
+    current_date = datetime.now().strftime("%d %b")
+    _, _, date_w, date_h = font_small.getbbox(current_date)
+    draw.text((x_offset + (width - date_w) / 2, y_offset + 10), current_date, font=font_small, fill=0)
     
     # Placeholders
     current_temp = "15°C"
@@ -76,20 +82,20 @@ def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_mediu
     max_temp = "20°C"
     location = "Berlin/Schöneberg"
 
-    # Centered current weather
+    # Centered current weather (adjusted for date above)
     _, _, w, h = font_large.getbbox(current_temp)
-    draw.text((x_offset + (width - w) / 2, y_offset + (height - h) / 2), current_temp, font=font_large, fill=0)
+    draw.text((x_offset + (width - w) / 2, y_offset + date_h + 20 + (height - date_h - 20 - h) / 2), current_temp, font=font_large, fill=0)
 
     # Location
     _, _, w_loc, h_loc = font_medium.getbbox(location)
-    draw.text((x_offset + (width - w_loc) / 2, y_offset + (height - h) / 2 + h), location, font=font_medium, fill=0)
+    draw.text((x_offset + (width - w_loc) / 2, y_offset + date_h + 20 + (height - date_h - 20 - h) / 2 + h), location, font=font_medium, fill=0)
 
     # Min and Max weather
     _, _, w_min, h_min = font_medium.getbbox(min_temp)
-    draw.text((x_offset + 10, y_offset + (height - h_min) / 2), min_temp, font=font_medium, fill=0)
+    draw.text((x_offset + 10, y_offset + date_h + 20 + (height - date_h - 20 - h_min) / 2), min_temp, font=font_medium, fill=0)
 
     _, _, w_max, h_max = font_medium.getbbox(max_temp)
-    draw.text((x_offset + width - w_max - 10, y_offset + (height - h_max) / 2), max_temp, font=font_medium, fill=0)
+    draw.text((x_offset + width - w_max - 10, y_offset + date_h + 20 + (height - date_h - 20 - h_max) / 2), max_temp, font=font_medium, fill=0)
 
 def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     """
@@ -103,20 +109,26 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
 
     # Fetch actual departure times
     departures_data = get_departures()
-    departures = [f"{dep['time']}" for dep in departures_data[:3]]  # Take first 3
+    departures = [(dep['time'], dep['direction']) for dep in departures_data[:3]]  # Take first 3
     
     if not departures:
-        departures = ["--:--", "--:--", "--:--"]  # Fallback if no data
+        departures = [("--:--", "No data")] * 3  # Fallback if no data
     
     y_pos = 10 + h + 20
     
     # Calculate spacing to evenly distribute the times
     spacing = width / (len(departures) + 1)
     
-    for i, departure in enumerate(departures):
-        _, _, dep_w, _ = font_small.getbbox(departure)
-        x_pos = x_offset + spacing * (i + 1) - dep_w / 2
-        draw.text((x_pos, y_pos), departure, font=font_small, fill=0)
+    for i, (time, direction) in enumerate(departures):
+        # Draw time
+        _, _, time_w, time_h = font_small.getbbox(time)
+        x_pos_time = x_offset + spacing * (i + 1) - time_w / 2
+        draw.text((x_pos_time, y_pos), time, font=font_small, fill=0)
+        
+        # Draw direction below time
+        _, _, dir_w, _ = font_small.getbbox(direction)
+        x_pos_dir = x_offset + spacing * (i + 1) - dir_w / 2
+        draw.text((x_pos_dir, y_pos + time_h + 5), direction, font=font_small, fill=0)
 
 def draw_tasks(draw_bw, draw_red, x_offset, y_offset, width, height, font_medium, font_small):
     """
@@ -200,7 +212,7 @@ def main():
             tasks_pane_height = screen_height - bus_pane_height
 
             # Draw Weather (top-left pane)
-            draw_weather(draw_bw, 0, 0, left_pane_width, weather_pane_height, font_large, font_medium)
+            draw_weather(draw_bw, 0, 0, left_pane_width, weather_pane_height, font_large, font_medium, font_small)
 
             # Draw Bus Departures (top-right pane)
             draw_bus_departures(draw_bw, left_pane_width, right_pane_width, bus_pane_height, font_medium, font_small)
