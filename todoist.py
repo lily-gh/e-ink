@@ -30,6 +30,9 @@ try:
         task_date = task.due.date
         content = task.content
         
+        # Replace plant emoji with Nerd Font icon
+        content = content.replace("🍃", "\ue22f")
+        
         # Add recurring icon if task is recurring
         if task.due.is_recurring:
             content += " \uf021"
