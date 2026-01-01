@@ -6,6 +6,7 @@ import subprocess
 import json
 import logging
 import time
+import re
 from PIL import Image, ImageDraw, ImageFont
 
 picdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pic')
@@ -40,6 +41,29 @@ def get_tasks():
         return []
     return []
 
+def get_departures():
+    """
+    Runs departures.py and returns a list of departures.
+    """
+    try:
+        process = subprocess.Popen(['python', 'departures.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode == 0:
+            output = stdout.decode('utf-8')
+            # The script prints a JSON array at the end, find and parse it
+            json_start = output.find('[{')
+            if json_start != -1:
+                json_str = output[json_start:]
+                return json.loads(json_str)
+        else:
+            logging.error("Error running departures.py")
+            logging.error(stderr.decode('utf-8'))
+            return []
+    except Exception as e:
+        logging.error(f"Exception getting departures: {e}")
+        return []
+    return []
+
 def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_medium):
     """
     Draws the weather pane.
@@ -67,7 +91,7 @@ def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_mediu
     _, _, w_max, h_max = font_medium.getbbox(max_temp)
     draw.text((x_offset + width - w_max - 10, y_offset + (height - h_max) / 2), max_temp, font=font_medium, fill=0)
 
-def draw_bus_departures(draw, x_offset, width, height, font_medium):
+def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     """
     Draws the bus departure times pane.
     """
@@ -77,35 +101,66 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium):
     _, _, w, h = font_medium.getbbox(title)
     draw.text((x_offset + (width - w) / 2, 10), title, font=font_medium, fill=0)
 
-    # Placeholders for departure times
-    departures = ["10:15", "10:30", "10:45"]
-    y_pos = 10 + h + 10
-    for departure in departures:
-        draw.text((x_offset + 20, y_pos), departure, font=font_medium, fill=0)
-        _, _, _, text_h = font_medium.getbbox(departure)
-        y_pos += text_h + 5
+    # Fetch actual departure times
+    departures_data = get_departures()
+    departures = [f"{dep['time']}" for dep in departures_data[:3]]  # Take first 3
+    
+    if not departures:
+        departures = ["--:--", "--:--", "--:--"]  # Fallback if no data
+    
+    y_pos = 10 + h + 20
+    
+    # Calculate spacing to evenly distribute the times
+    spacing = width / (len(departures) + 1)
+    
+    for i, departure in enumerate(departures):
+        _, _, dep_w, _ = font_small.getbbox(departure)
+        x_pos = x_offset + spacing * (i + 1) - dep_w / 2
+        draw.text((x_pos, y_pos), departure, font=font_small, fill=0)
 
-def draw_tasks(draw, x_offset, y_offset, width, height, font_medium, font_small):
+def draw_tasks(draw_bw, draw_red, x_offset, y_offset, width, height, font_medium, font_small):
     """
     Draws the tasks pane.
     """
-    draw.rectangle([(x_offset, y_offset), (x_offset + width, y_offset + height)], fill=255)
+    draw_bw.rectangle([(x_offset, y_offset), (x_offset + width, y_offset + height)], fill=255)
     
     title = "Lily's Tasks"
     _, _, w, h = font_medium.getbbox(title)
-    draw.text((x_offset + (width - w) / 2, y_offset + 10), title, font=font_medium, fill=0)
+    draw_bw.text((x_offset + (width - w) / 2, y_offset + 10), title, font=font_medium, fill=0)
 
     tasks = get_tasks()
     y_pos = y_offset + 10 + h + 10
     if tasks:
         for task in tasks:
-            draw.text((x_offset + 20, y_pos), f"- {task}", font=font_small, fill=0)
-            _, _, _, task_h = font_small.getbbox(task)
-            y_pos += task_h + 5
+            # Parse task to find text in parentheses
+            parts = re.split(r'(\([^)]*\))', task)
+            
+            x_pos = x_offset + 20
+            draw_bw.text((x_pos, y_pos), "- ", font=font_small, fill=0)
+            _, _, dash_w, _ = font_small.getbbox("- ")
+            x_pos += dash_w
+            
+            max_line_height = 0
+            for part in parts:
+                if not part:  # Skip empty strings
+                    continue
+                    
+                if part.startswith('(') and part.endswith(')'):
+                    # Draw parentheses text in red
+                    draw_red.text((x_pos, y_pos), part, font=font_small, fill=0)
+                else:
+                    # Draw regular text in black
+                    draw_bw.text((x_pos, y_pos), part, font=font_small, fill=0)
+                
+                _, _, part_w, part_h = font_small.getbbox(part)
+                x_pos += part_w
+                max_line_height = max(max_line_height, part_h)
+            
+            y_pos += max_line_height + 5
             if y_pos > y_offset + height - 20: # Don't draw off screen
                 break
     else:
-        draw.text((x_offset + 20, y_pos), "No tasks today!", font=font_small, fill=0)
+        draw_bw.text((x_offset + 20, y_pos), "No tasks today!", font=font_small, fill=0)
 
 
 def main():
@@ -118,9 +173,9 @@ def main():
         epd.Clear()
         logging.info("done with Clear")
 
-        font_large = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 48)
-        font_medium = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 24)
-        font_small = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 18)
+        font_large = ImageFont.truetype(os.path.join(picdir, 'MapleMonoBold.ttf'), 48)
+        font_medium = ImageFont.truetype(os.path.join(picdir, 'MapleMonoBold.ttf'), 24)
+        font_small = ImageFont.truetype(os.path.join(picdir, 'MapleMonoBold.ttf'), 18)
 
         while True:
             # Create a new image for the display
@@ -148,10 +203,10 @@ def main():
             draw_weather(draw_bw, 0, 0, left_pane_width, weather_pane_height, font_large, font_medium)
 
             # Draw Bus Departures (top-right pane)
-            draw_bus_departures(draw_bw, left_pane_width, right_pane_width, bus_pane_height, font_medium)
+            draw_bus_departures(draw_bw, left_pane_width, right_pane_width, bus_pane_height, font_medium, font_small)
 
             # Draw Tasks (bottom-right pane)
-            draw_tasks(draw_bw, left_pane_width, bus_pane_height, right_pane_width, tasks_pane_height, font_medium, font_small)
+            draw_tasks(draw_bw, draw_red, left_pane_width, bus_pane_height, right_pane_width, tasks_pane_height, font_medium, font_small)
 
             # Draw vertical separator line
             draw_bw.line((left_pane_width, 0, left_pane_width, screen_height), fill=0, width=2)
