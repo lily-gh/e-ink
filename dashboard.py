@@ -13,7 +13,7 @@ libdir = os.path.dirname(os.path.realpath(__file__))
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
-import epd7in5b_V2
+
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -74,7 +74,7 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium):
     draw.rectangle([(x_offset, 0), (x_offset + width, height)], fill=255)
     
     title = "Bus 106 Departures"
-    w, h = draw.textsize(title, font=font_medium)
+    _, _, w, h = font_medium.getbbox(title)
     draw.text((x_offset + (width - w) / 2, 10), title, font=font_medium, fill=0)
 
     # Placeholders for departure times
@@ -82,7 +82,8 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium):
     y_pos = 10 + h + 10
     for departure in departures:
         draw.text((x_offset + 20, y_pos), departure, font=font_medium, fill=0)
-        y_pos += h + 5
+        _, _, _, text_h = font_medium.getbbox(departure)
+        y_pos += text_h + 5
 
 def draw_tasks(draw, x_offset, y_offset, width, height, font_medium, font_small):
     """
