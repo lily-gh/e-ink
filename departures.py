@@ -4,7 +4,7 @@ from datetime import datetime
 BASE = "https://v6.bvg.transport.rest"
 STOP_ID = "900058105"  # Lindenhof
 LINE_NAME = "106"
-DURATION_MIN = 90
+DURATION_MIN = 50
 
 resp = requests.get(
     f"{BASE}/stops/{STOP_ID}/departures",
