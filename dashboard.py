@@ -179,7 +179,7 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     """
     draw.rectangle([(x_offset, 0), (x_offset + width, height)], fill=255)
     
-    title = "Bus 106 Departures \udb81\udfa0"
+    title = "Bus 106 Departures \uf207"
     _, _, w, h = font_medium.getbbox(title)
     draw.text((x_offset + (width - w) / 2, 10), title, font=font_medium, fill=0)
 
