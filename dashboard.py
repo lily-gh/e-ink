@@ -138,12 +138,19 @@ def draw_forecast(draw, x_offset, y_offset, width, height, font_small, weather_d
     if weather_data and 'now' in weather_data:
         from datetime import datetime
         
+        # Define column positions
+        left_margin = x_offset + 60
+        min_col_x = left_margin + 80
+        max_col_x = min_col_x + 60
+        
         # First, show today's weather
         today_min = weather_data['now']['min']
         today_max = weather_data['now']['max']
-        forecast_line = f"Today:    {today_min}°   {today_max}°"
-        _, _, line_w, line_h = font_small.getbbox(forecast_line)
-        draw.text((x_offset + (width - line_w) / 2, y_pos), forecast_line, font=font_small, fill=0)
+        
+        draw.text((left_margin, y_pos), "Today:", font=font_small, fill=0)
+        draw.text((min_col_x, y_pos), f"{today_min}°", font=font_small, fill=0)
+        draw.text((max_col_x, y_pos), f"{today_max}°", font=font_small, fill=0)
+        _, _, _, line_h = font_small.getbbox("Today:")
         y_pos += line_h + 8
         
         # Then show next days with weekday abbreviations
@@ -153,11 +160,10 @@ def draw_forecast(draw, x_offset, y_offset, width, height, font_small, weather_d
                 date_obj = datetime.fromisoformat(day['date'])
                 weekday = date_obj.strftime("%a")
                 
-                # Format: "weekday:    min   max"
-                forecast_line = f"{weekday}:    {day['min']}°   {day['max']}°"
-                
-                _, _, line_w, line_h = font_small.getbbox(forecast_line)
-                draw.text((x_offset + (width - line_w) / 2, y_pos), forecast_line, font=font_small, fill=0)
+                draw.text((left_margin, y_pos), f"{weekday}:", font=font_small, fill=0)
+                draw.text((min_col_x, y_pos), f"{day['min']}°", font=font_small, fill=0)
+                draw.text((max_col_x, y_pos), f"{day['max']}°", font=font_small, fill=0)
+                _, _, _, line_h = font_small.getbbox(weekday)
                 y_pos += line_h + 8
                 
                 if y_pos > y_offset + height - 20:
@@ -301,7 +307,7 @@ def main():
             right_pane_width = screen_width // 2
 
             # Left pane horizontal split
-            weather_pane_height = int(screen_height * 0.30)
+            weather_pane_height = int(screen_height * 0.40)
             forecast_pane_height = screen_height - weather_pane_height
             
             # Right pane horizontal split
