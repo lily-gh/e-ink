@@ -118,7 +118,7 @@ def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_mediu
 
     # Location
     _, _, w_loc, h_loc = font_medium.getbbox(location)
-    draw.text((x_offset + (width - w_loc) / 2, y_offset + date_h + 20 + (height - date_h - 20 - h) / 2 + h), location, font=font_medium, fill=0)
+    draw.text((x_offset + (width - w_loc) / 2, y_offset + date_h + 20 + (height - date_h - 20 - h) / 2 + h + 10), location, font=font_medium, fill=0)
 
     # Min and Max weather
     _, _, w_min, h_min = font_medium.getbbox(min_temp)
