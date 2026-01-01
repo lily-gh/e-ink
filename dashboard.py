@@ -193,7 +193,7 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     y_pos = 10 + h + 20
     
     # Add padding and calculate spacing to evenly distribute the times
-    padding = 15
+    padding = 5
     usable_width = width - (2 * padding)
     spacing = usable_width / (len(departures) + 1)
     
@@ -214,7 +214,7 @@ def draw_tasks(draw_bw, draw_red, x_offset, y_offset, width, height, font_medium
     """
     draw_bw.rectangle([(x_offset, y_offset), (x_offset + width, y_offset + height)], fill=255)
     
-    title = "Lily's Tasks"
+    title = "Lily's Tasks \uf0ae"
     _, _, w, h = font_medium.getbbox(title)
     draw_bw.text((x_offset + (width - w) / 2, y_offset + 10), title, font=font_medium, fill=0)
 
