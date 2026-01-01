@@ -40,32 +40,32 @@ def get_tasks():
         return []
     return []
 
-def draw_weather(draw, width, height, font_large, font_medium):
+def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_medium):
     """
     Draws the weather pane.
     """
-    draw.rectangle([(0, 0), (width, height)], fill=255)
+    draw.rectangle([(x_offset, y_offset), (x_offset + width, y_offset + height)], fill=255)
     
     # Placeholders
     current_temp = "15°C"
     min_temp = "10°C"
     max_temp = "20°C"
-    location = "Berlin/Schoeneberg"
+    location = "Berlin/Schöneberg"
 
     # Centered current weather
     _, _, w, h = font_large.getbbox(current_temp)
-    draw.text(((width - w) / 2, (height - h) / 2), current_temp, font=font_large, fill=0)
+    draw.text((x_offset + (width - w) / 2, y_offset + (height - h) / 2), current_temp, font=font_large, fill=0)
 
     # Location
     _, _, w_loc, h_loc = font_medium.getbbox(location)
-    draw.text(((width - w_loc) / 2, (height - h) / 2 + h), location, font=font_medium, fill=0)
+    draw.text((x_offset + (width - w_loc) / 2, y_offset + (height - h) / 2 + h), location, font=font_medium, fill=0)
 
     # Min and Max weather
     _, _, w_min, h_min = font_medium.getbbox(min_temp)
-    draw.text((10, (height - h_min) / 2), min_temp, font=font_medium, fill=0)
+    draw.text((x_offset + 10, y_offset + (height - h_min) / 2), min_temp, font=font_medium, fill=0)
 
     _, _, w_max, h_max = font_medium.getbbox(max_temp)
-    draw.text((width - w_max - 10, (height - h_max) / 2), max_temp, font=font_medium, fill=0)
+    draw.text((x_offset + width - w_max - 10, y_offset + (height - h_max) / 2), max_temp, font=font_medium, fill=0)
 
 def draw_bus_departures(draw, x_offset, width, height, font_medium):
     """
@@ -116,6 +116,7 @@ def main():
         logging.info("init and Clear")
         epd.init()
         epd.Clear()
+        logging.info("done with Clear")
 
         font_large = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 48)
         font_medium = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 24)
@@ -136,18 +137,24 @@ def main():
             left_pane_width = screen_width // 2
             right_pane_width = screen_width // 2
 
+            # Left pane horizontal split
+            weather_pane_height = int(screen_height * 0.30)
+            
             # Right pane horizontal split
             bus_pane_height = int(screen_height * 0.25)
             tasks_pane_height = screen_height - bus_pane_height
 
-            # Draw Weather (left pane)
-            draw_weather(draw_bw, left_pane_width, screen_height, font_large, font_medium)
+            # Draw Weather (top-left pane)
+            draw_weather(draw_bw, 0, 0, left_pane_width, weather_pane_height, font_large, font_medium)
 
             # Draw Bus Departures (top-right pane)
             draw_bus_departures(draw_bw, left_pane_width, right_pane_width, bus_pane_height, font_medium)
 
             # Draw Tasks (bottom-right pane)
             draw_tasks(draw_bw, left_pane_width, bus_pane_height, right_pane_width, tasks_pane_height, font_medium, font_small)
+
+            # Draw vertical separator line
+            draw_bw.line((left_pane_width, 0, left_pane_width, screen_height), fill=0, width=2)
 
             epd.display(epd.getbuffer(Himage), epd.getbuffer(Other))
             
