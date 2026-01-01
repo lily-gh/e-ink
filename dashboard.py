@@ -192,20 +192,21 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     
     y_pos = 10 + h + 20
     
-    # Add padding and calculate spacing to evenly distribute the times
-    padding = 5
-    usable_width = width - (2 * padding)
-    spacing = usable_width / (len(departures) + 1)
+    # Divide width into equal sections for each departure
+    section_width = width / len(departures)
     
     for i, (time, direction) in enumerate(departures):
-        # Draw time
+        # Calculate center of each section
+        section_center = x_offset + (i + 0.5) * section_width
+        
+        # Draw time centered in section
         _, _, time_w, time_h = font_small.getbbox(time)
-        x_pos_time = x_offset + padding + spacing * (i + 1) - time_w / 2
+        x_pos_time = section_center - time_w / 2
         draw.text((x_pos_time, y_pos), time, font=font_small, fill=0)
         
-        # Draw direction below time
+        # Draw direction below time, also centered
         _, _, dir_w, _ = font_small.getbbox(direction)
-        x_pos_dir = x_offset + padding + spacing * (i + 1) - dir_w / 2
+        x_pos_dir = section_center - dir_w / 2
         draw.text((x_pos_dir, y_pos + time_h + 5), direction, font=font_small, fill=0)
 
 def draw_tasks(draw_bw, draw_red, x_offset, y_offset, width, height, font_medium, font_small):
