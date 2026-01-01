@@ -116,18 +116,20 @@ def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     
     y_pos = 10 + h + 20
     
-    # Calculate spacing to evenly distribute the times
-    spacing = width / (len(departures) + 1)
+    # Add padding and calculate spacing to evenly distribute the times
+    padding = 40
+    usable_width = width - (2 * padding)
+    spacing = usable_width / (len(departures) + 1)
     
     for i, (time, direction) in enumerate(departures):
         # Draw time
         _, _, time_w, time_h = font_small.getbbox(time)
-        x_pos_time = x_offset + spacing * (i + 1) - time_w / 2
+        x_pos_time = x_offset + padding + spacing * (i + 1) - time_w / 2
         draw.text((x_pos_time, y_pos), time, font=font_small, fill=0)
         
         # Draw direction below time
         _, _, dir_w, _ = font_small.getbbox(direction)
-        x_pos_dir = x_offset + spacing * (i + 1) - dir_w / 2
+        x_pos_dir = x_offset + padding + spacing * (i + 1) - dir_w / 2
         draw.text((x_pos_dir, y_pos + time_h + 5), direction, font=font_small, fill=0)
 
 def draw_tasks(draw_bw, draw_red, x_offset, y_offset, width, height, font_medium, font_small):
@@ -142,31 +144,55 @@ def draw_tasks(draw_bw, draw_red, x_offset, y_offset, width, height, font_medium
 
     tasks = get_tasks()
     y_pos = y_offset + 10 + h + 10
+    max_width = width - 40  # Leave margin on right side
+    
     if tasks:
         for task in tasks:
             # Parse task to find text in parentheses
             parts = re.split(r'(\([^)]*\))', task)
             
             x_pos = x_offset + 20
+            line_start_x = x_offset + 20
             draw_bw.text((x_pos, y_pos), "- ", font=font_small, fill=0)
-            _, _, dash_w, _ = font_small.getbbox("- ")
+            _, _, dash_w, dash_h = font_small.getbbox("- ")
             x_pos += dash_w
+            line_start_x = x_pos  # Start of actual text after dash
             
-            max_line_height = 0
+            max_line_height = dash_h
             for part in parts:
                 if not part:  # Skip empty strings
                     continue
-                    
-                if part.startswith('(') and part.endswith(')'):
-                    # Draw parentheses text in red
-                    draw_red.text((x_pos, y_pos), part, font=font_small, fill=0)
-                else:
-                    # Draw regular text in black
-                    draw_bw.text((x_pos, y_pos), part, font=font_small, fill=0)
                 
-                _, _, part_w, part_h = font_small.getbbox(part)
-                x_pos += part_w
-                max_line_height = max(max_line_height, part_h)
+                # Split part into words for better wrapping
+                words = part.split(' ')
+                for word_idx, word in enumerate(words):
+                    if word_idx > 0:
+                        word = ' ' + word  # Add space back except for first word
+                    
+                    _, _, word_w, word_h = font_small.getbbox(word)
+                    
+                    # Check if word fits on current line
+                    if x_pos + word_w > x_offset + max_width and x_pos > line_start_x:
+                        # Move to next line
+                        y_pos += max_line_height + 3
+                        x_pos = line_start_x
+                        max_line_height = 0
+                        
+                        # Remove leading space if word starts with space
+                        if word.startswith(' '):
+                            word = word[1:]
+                            _, _, word_w, word_h = font_small.getbbox(word)
+                    
+                    # Draw the word
+                    if part.startswith('(') and part.endswith(')'):
+                        # Draw parentheses text in red
+                        draw_red.text((x_pos, y_pos), word, font=font_small, fill=0)
+                    else:
+                        # Draw regular text in black
+                        draw_bw.text((x_pos, y_pos), word, font=font_small, fill=0)
+                    
+                    x_pos += word_w
+                    max_line_height = max(max_line_height, word_h)
             
             y_pos += max_line_height + 5
             if y_pos > y_offset + height - 20: # Don't draw off screen

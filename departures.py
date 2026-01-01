@@ -39,6 +39,6 @@ for r in results[:4]:
 
 # Return as JSON array sorted by departure time
 import json
-output = [{"time": r["time"], "direction": r["direction"]} for r in results]
+output = [{"time": r["time"], "direction": r["direction"]} for r in results[:3]]
 print("\nDepartures as JSON array:")
 print(json.dumps(output, ensure_ascii=False))
