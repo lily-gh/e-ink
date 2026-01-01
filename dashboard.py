@@ -64,7 +64,30 @@ def get_departures():
         return []
     return []
 
-def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_medium, font_small):
+def get_weather():
+    """
+    Runs weather.py and returns weather data.
+    """
+    try:
+        process = subprocess.Popen(['python', 'weather.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode == 0:
+            output = stdout.decode('utf-8')
+            # The script prints a JSON object at the end
+            json_start = output.find('{')
+            if json_start != -1:
+                json_str = output[json_start:]
+                return json.loads(json_str)
+        else:
+            logging.error("Error running weather.py")
+            logging.error(stderr.decode('utf-8'))
+            return None
+    except Exception as e:
+        logging.error(f"Exception getting weather: {e}")
+        return None
+    return None
+
+def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_medium, font_small, weather_data):
     """
     Draws the weather pane.
     """
@@ -76,10 +99,16 @@ def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_mediu
     _, _, date_w, date_h = font_small.getbbox(current_date)
     draw.text((x_offset + (width - date_w) / 2, y_offset + 10), current_date, font=font_small, fill=0)
     
-    # Placeholders
-    current_temp = "15°C"
-    min_temp = "10°C"
-    max_temp = "20°C"
+    # Get weather data or use placeholders
+    if weather_data and 'now' in weather_data:
+        current_temp = f"{weather_data['now']['temp']}°C"
+        min_temp = f"{weather_data['now']['min']}°C"
+        max_temp = f"{weather_data['now']['max']}°C"
+    else:
+        current_temp = "--°C"
+        min_temp = "--°C"
+        max_temp = "--°C"
+    
     location = "Berlin/Schöneberg"
 
     # Centered current weather (adjusted for date above)
@@ -96,6 +125,33 @@ def draw_weather(draw, x_offset, y_offset, width, height, font_large, font_mediu
 
     _, _, w_max, h_max = font_medium.getbbox(max_temp)
     draw.text((x_offset + width - w_max - 10, y_offset + date_h + 20 + (height - date_h - 20 - h_max) / 2), max_temp, font=font_medium, fill=0)
+
+def draw_forecast(draw, x_offset, y_offset, width, height, font_small, weather_data):
+    """
+    Draws the 5-day weather forecast.
+    """
+    draw.rectangle([(x_offset, y_offset), (x_offset + width, y_offset + height)], fill=255)
+    
+    y_pos = y_offset + 10
+    
+    if weather_data and 'forecast' in weather_data:
+        from datetime import datetime
+        for day in weather_data['forecast'][:5]:
+            # Format date as "dd MMM"
+            date_obj = datetime.fromisoformat(day['date'])
+            date_str = date_obj.strftime("%d %b")
+            
+            # Format: "dd MMM:    min   max"
+            forecast_line = f"{date_str}:    {day['min']}°   {day['max']}°"
+            
+            draw.text((x_offset + 20, y_pos), forecast_line, font=font_small, fill=0)
+            _, _, _, line_h = font_small.getbbox(forecast_line)
+            y_pos += line_h + 8
+            
+            if y_pos > y_offset + height - 20:
+                break
+    else:
+        draw.text((x_offset + 20, y_pos), "No forecast data", font=font_small, fill=0)
 
 def draw_bus_departures(draw, x_offset, width, height, font_medium, font_small):
     """
@@ -232,13 +288,20 @@ def main():
 
             # Left pane horizontal split
             weather_pane_height = int(screen_height * 0.30)
+            forecast_pane_height = screen_height - weather_pane_height
             
             # Right pane horizontal split
             bus_pane_height = int(screen_height * 0.25)
             tasks_pane_height = screen_height - bus_pane_height
 
+            # Fetch weather data
+            weather_data = get_weather()
+
             # Draw Weather (top-left pane)
-            draw_weather(draw_bw, 0, 0, left_pane_width, weather_pane_height, font_large, font_medium, font_small)
+            draw_weather(draw_bw, 0, 0, left_pane_width, weather_pane_height, font_large, font_medium, font_small, weather_data)
+
+            # Draw Forecast (bottom-left pane)
+            draw_forecast(draw_bw, 0, weather_pane_height, left_pane_width, forecast_pane_height, font_small, weather_data)
 
             # Draw Bus Departures (top-right pane)
             draw_bus_departures(draw_bw, left_pane_width, right_pane_width, bus_pane_height, font_medium, font_small)

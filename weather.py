@@ -18,22 +18,36 @@ r.raise_for_status()
 data = r.json()
 
 # current weather
-current_temp = data["current"]["temp"]
+current_temp = int(data["current"]["temp"])
 current_desc = data["current"]["weather"][0]["description"]
 
 # today min/max (first daily entry)
 today = data["daily"][0]
-min_temp = today["temp"]["min"]
-max_temp = today["temp"]["max"]
+min_temp = int(today["temp"]["min"])
+max_temp = int(today["temp"]["max"])
 
-# next 3 days forecast (date, min, max, short desc)
+# next 5 days forecast (date, min, max, short desc)
 forecast = []
-for d in data["daily"][1:4]:
+for d in data["daily"][1:6]:
     dt = datetime.datetime.fromtimestamp(d["dt"]).date().isoformat()
-    forecast.append({"date": dt, "min": d["temp"]["min"], "max": d["temp"]["max"],
-                     "desc": d["weather"][0]["description"]})
+    forecast.append({
+        "date": dt,
+        "min": int(d["temp"]["min"]),
+        "max": int(d["temp"]["max"]),
+        "desc": d["weather"][0]["description"]
+    })
 
-print("Now:", current_temp, current_desc)
-print("Today min/max:", min_temp, max_temp)
-print("Next days:", forecast)
+# Create JSON output
+import json
+output = {
+    "now": {
+        "temp": current_temp,
+        "desc": current_desc,
+        "min": min_temp,
+        "max": max_temp
+    },
+    "forecast": forecast
+}
+
+print(json.dumps(output, indent=2))
 
